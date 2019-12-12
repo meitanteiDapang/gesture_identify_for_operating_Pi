@@ -22,6 +22,7 @@ from tensorflow import keras
 from PIL import Image
 import random
 import cv2
+import socket
 
 target_dir = "/Users/yzh/Desktop/motion/"  # 拍照存储照片路径
 cp_dir = "/Users/yzh/Desktop/motion2/"
@@ -29,8 +30,8 @@ i = 0  # 照片编号
 pic_name = target_dir + "gesture" + str(i)+".jpg"
 cap_running = True
 
-mmm = keras.models.load_model("../model/1.h5")  # 读取model
-
+mmm = keras.models.load_model("../model/10.h5")  # 读取model
+udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # 初始化服务器
 
 class myThread (Thread):
 
@@ -44,6 +45,17 @@ class myThread (Thread):
             time.sleep(5)
 
 
+def process_array(x):
+    max = 0
+    jb = -1
+    for i in range(10):
+        if x[i] > max:
+            jb = i
+            max = x[i]
+    if x[jb] > 0.8:
+        return jb
+    else:
+        return 9
 
 
 if __name__ == '__main__':  
@@ -75,7 +87,14 @@ if __name__ == '__main__':
                     cap_running = False
                     break
                 elif k == ord('s'):
-                    cv2.imwrite('../pi_test_image_orig/' + str(pic) + '.jpg', frame)
+                    # 提高对比度
+                    a = 1.5
+                    O1 = frame * float(a)
+                    O1[O1 > 255] = 255
+                    O1 = np.round(O1)
+                    O1 = O1.astype(np.uint8)
+
+                    cv2.imwrite('../pi_test_image_orig/' + str(pic) + '.jpg', O1)
                     break
             if not cap_running:
                 break
@@ -98,7 +117,16 @@ if __name__ == '__main__':
             here1 = np.array([pi_image])
             here1 = here1 / 255  # 一些必要处理
             prediction_pi_image5 = mmm.predict(here1)
+            # ----------------  根据预测向量获得
             print(prediction_pi_image5[0])  # 预测向量打印
+            result = process_array(prediction_pi_image5[0])
+            print(result)
+
+            dic = {0: 0, 1: 0, 2: 1, 3: 2, 4: 2, 5: 3, 6: 3, 7: 5, 8: 5, 9: 6}
+            result = dic[result]
+            print(result)
+
+            udp_socket.sendto(str(result).encode("utf-8"), ("192.168.137.161", 8081))
             pic += 1
 
     except KeyboardInterrupt:

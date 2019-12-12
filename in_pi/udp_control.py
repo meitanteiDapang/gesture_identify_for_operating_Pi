@@ -1,6 +1,6 @@
 import socket
 
-IP = "192.168.191.2"
+IP = "192.168.137.133"
 PORT = 8081
 
 def main_control(choice, udp_socket):
@@ -11,30 +11,37 @@ def main_control(choice, udp_socket):
     try:
         while(True):
             # 3. 接收数据
-            recv_data = udp_socket.recvfrom(1)                
-            data = recv_data[0].decode("utf-8")
+            #recv_data = udp_socket.recvfrom(1)                
+            #data = recv_data[0].decode("utf-8")
             
-            #data = input("please input:")
+            data = input("please input:")
     
             #4. 打印接收到的数据
             print(data)
             cmd = int(data) 
         
             if(0 == cmd):
-                #0手势 蓝灯闪烁/前向加速/后向减速
+                #0手势 红灯闪烁/停止
                 target.cmd0()
                 pass
             elif(1 == cmd):
-                #1手势 绿灯闪烁/后向加速/前向减速
+                #1手势 蓝灯闪烁/前向加速/后向减速
                 target.cmd1()
                 pass           
             elif(2 == cmd):
-                #5手势 红灯闪烁/停止
+                #2手势 绿灯闪烁/后向加速/前向减速
                 target.cmd2()
                 pass
-            else:
-                #空手势 不亮灯/保持速度
+            elif(3 == cmd):
+                #3手势 左转
                 target.cmd3()
+            elif(5 == cmd):
+                #5手势 右转
+                target.cmd5()
+            elif(6 == cmd):
+                #空手势 不亮灯/保持速度
+                target.cmd6()
+            else:
                 pass
     except KeyboardInterrupt:
         pass
@@ -47,7 +54,7 @@ def main():
     
     # 2. 绑定一个本地信息
     localaddr = (IP, PORT)
-    udp_socket.bind(localaddr)    
+    udp_socket.bind(localaddr)
    
     main_control(choice, udp_socket)
       

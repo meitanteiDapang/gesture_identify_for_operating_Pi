@@ -4,20 +4,22 @@
 accelerating_forward = False
 decelerating_forward = False
 speed1 = 0
+left_turning=False
+right_turning=False
 
-import time	#加入时间模块用于延时
-import RPi.GPIO as GPIO	#导入RPi.GPIO模块，
+import time #加入时间模块用于延时
+import RPi.GPIO as GPIO #导入RPi.GPIO模块，
 import sys
 from threading import *
-GPIO.setmode(GPIO.BCM)	#设置编码模式为BCM
+GPIO.setmode(GPIO.BCM)  #设置编码模式为BCM
 GPIO.setwarnings(False) #屏蔽警告信息
 
 print('------------MOTO---------------')
 
-MOTO1 = 6
-MOTO2 = 19
-MOTO3 = 13
-MOTO4 = 26
+MOTO1 = 6   #front_right
+MOTO2 = 19   #front_left
+MOTO3 = 13  #back_right
+MOTO4 = 26   #back_left
 
 GPIO.setup(MOTO1,GPIO.OUT)#设置引脚输出
 GPIO.setup(MOTO2,GPIO.OUT)
@@ -34,15 +36,20 @@ pwm_MOTO2.start(0)
 pwm_MOTO3.start(0)#启用pwm，用占空比初始化
 pwm_MOTO4.start(0)
 
+pwm_MOTO1.ChangeDutyCycle(0)
+pwm_MOTO2.ChangeDutyCycle(0)
+pwm_MOTO3.ChangeDutyCycle(0)
+pwm_MOTO4.ChangeDutyCycle(0)
+
 
 def accelerate():
     global speed1
     while 1:
-        if speed1 > 95:
+        if speed1 > 38:
             break
         if not accelerating_forward:
             break
-        speed1 += 5
+        speed1 += 2
         if speed1 >= 0:
             pwm_MOTO1.ChangeDutyCycle(speed1)
             pwm_MOTO2.ChangeDutyCycle(speed1)
@@ -57,11 +64,11 @@ t1 = Thread(target = accelerate)
 def decelerate():
     global speed1
     while 1:
-        if speed1 < -95:
+        if speed1 < -38:
             break
         if not decelerating_forward:
             break
-        speed1 -= 5
+        speed1 -= 2
         if speed1 >= 0:
             pwm_MOTO1.ChangeDutyCycle(speed1)
             pwm_MOTO2.ChangeDutyCycle(speed1)
@@ -74,15 +81,24 @@ def decelerate():
 t2 = Thread(target = decelerate)
 
 #def stop():
-def cmd2():
+def cmd0():
     #停止
+    global decelerating_forward
+    global accelerating_forward
+    global left_turning
+    global right_turning
+    decelerating_forward = False
+    accelerating_forward = False
+    left_turning = False
+    right_turning = False
     pwm_MOTO1.ChangeDutyCycle(0)#更改占空比
     pwm_MOTO2.ChangeDutyCycle(0)
     pwm_MOTO3.ChangeDutyCycle(0)#更改占空比
     pwm_MOTO4.ChangeDutyCycle(0)
+    speed1 = 0
 
 #def acc():
-def cmd0():
+def cmd1():
     #前转加速
     global accelerating_forward
     global decelerating_forward
@@ -92,8 +108,9 @@ def cmd0():
         t1.start()
 
 #def dec():
-def cmd1():
+def cmd2():
     #后转加速
+    global speed1
     global accelerating_forward
     global decelerating_forward
     if not accelerating_forward and not decelerating_forward:
@@ -102,12 +119,71 @@ def cmd1():
         t2.start()
 
 #def keep():
-def cmd3():
+def cmd6():
     #保持匀速
+    global speed1
     global accelerating_forward
     global decelerating_forward
     accelerating_forward = False
     decelerating_forward = False
+    global left_turning
+    global right_turning
+    if(left_turning):
+        if(speed1 >0):
+            pwm_MOTO2.ChangeDutyCycle(speed1)
+        else:
+            pwm_MOTO4.ChangeDutyCycle(-speed1)
+        left_turning = False
+    elif(right_turning):
+        if(speed1 >0):
+            pwm_MOTO1.ChangeDutyCycle(speed1)
+        else:
+            pwm_MOTO3.ChangeDutyCycle(-speed1)
+        right_turning = False
+        
+def cmd3():
+    #left turn
+    global speed1
+    global accelerating_forward
+    global decelerating_forward
+    global left_turning
+    global right_turning
+    left_turning=True
+    right_turning=False
+    if(speed1<0):
+        pwm_MOTO1.ChangeDutyCycle(0)#更改占空比
+        pwm_MOTO2.ChangeDutyCycle(0)
+        pwm_MOTO3.ChangeDutyCycle(-speed1)#更改占空比
+        pwm_MOTO4.ChangeDutyCycle(0)
+#        print("cannot turn")
+#        return
+    else:
+        pwm_MOTO1.ChangeDutyCycle(speed1)#更改占空比
+        pwm_MOTO2.ChangeDutyCycle(0)
+        pwm_MOTO3.ChangeDutyCycle(0)#更改占空比
+        pwm_MOTO4.ChangeDutyCycle(0)
+#    if(not ):
+def cmd5():
+    #right turn
+    global speed1
+    global accelerating_forward
+    global decelerating_forward
+    global left_turning
+    global right_turning
+    right_turning=True
+    left_turning=False
+    if(speed1<0):
+        pwm_MOTO1.ChangeDutyCycle(0)#更改占空比
+        pwm_MOTO2.ChangeDutyCycle(0)
+        pwm_MOTO3.ChangeDutyCycle(0)#更改占空比
+        pwm_MOTO4.ChangeDutyCycle(-speed1)
+#        print("cannot turn")
+#        return
+    else:
+        pwm_MOTO1.ChangeDutyCycle(0)#更改占空比
+        pwm_MOTO2.ChangeDutyCycle(speed1)
+        pwm_MOTO3.ChangeDutyCycle(0)#更改占空比
+        pwm_MOTO4.ChangeDutyCycle(0)
 '''
 try:
     while(1):
